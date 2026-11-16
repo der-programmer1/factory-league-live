@@ -25,14 +25,51 @@ test('resolve a stale database ID by exact name before migrations and deployment
     assert.deepEqual(await f.read(),{...f.config,d1_databases:[{...f.config.d1_databases[0],database_id:actualId}]});
   }finally{await f.close();}
 });
-test('a missing or ambiguous named database never creates or mutates a database',async()=>{
-  for(const databases of [[],[{name:'other',uuid:actualId}],[{name:'factory-league',uuid:actualId},{name:'factory-league',uuid:oldId}]]){
+test('a missing named database is created once without modifying other databases',async()=>{
+  for(const existing of [[],[{name:'other',uuid:oldId}]]){
+    const f=await fixture(),calls=[];let created=false;
+    try{
+      await deployCloudflare({cwd:f.cwd,log:()=>{},run:async args=>{
+        calls.push(args);
+        if(args[1]==='list')return JSON.stringify(created?[...existing,{name:'factory-league',uuid:actualId}]:existing);
+        if(args[1]==='create'){created=true;return '';}
+        assert.equal((await f.read()).d1_databases[0].database_id,actualId);return '';
+      }});
+      assert.deepEqual(calls,[['d1','list','--json'],['d1','create','factory-league','--location','weur','--update-config=false'],['d1','list','--json'],['d1','migrations','apply','DB','--remote'],['deploy']]);
+    }finally{await f.close();}
+  }
+});
+test('an ambiguous name never creates or mutates a database',async()=>{
+  for(const databases of [[{name:'factory-league',uuid:actualId},{name:'factory-league',uuid:oldId}]]){
     const f=await fixture(),calls=[];
     try{
       await assert.rejects(()=>deployCloudflare({cwd:f.cwd,log:()=>{},run:async args=>{calls.push(args);return JSON.stringify(databases);}}),/nicht eindeutig gefunden/);
       assert.deepEqual(calls,[['d1','list','--json']]);assert.deepEqual(await f.read(),f.config);
     }finally{await f.close();}
   }
+});
+test('creation failure stops migrations, but a concurrent creator can be reused',async()=>{
+  for(const race of [false,true]){
+    const f=await fixture(),calls=[];let attempted=false;
+    try{
+      const execute=()=>deployCloudflare({cwd:f.cwd,log:()=>{},run:async args=>{
+        calls.push(args);
+        if(args[1]==='list')return JSON.stringify(race&&attempted?[{name:'factory-league',uuid:actualId}]:[]);
+        if(args[1]==='create'){attempted=true;throw new Error(race?'already exists':'quota or permission denied');}
+        return '';
+      }});
+      if(race){await execute();assert.equal(calls.at(-1)[0],'deploy');}
+      else{await assert.rejects(execute,/quota or permission denied/);assert.deepEqual(await f.read(),f.config);assert.equal(calls.length,3);}
+      assert.equal(calls.filter(args=>args[1]==='create').length,1);
+    }finally{await f.close();}
+  }
+});
+test('unconfirmed creation never repeats creation or deploys a Worker',async()=>{
+  const f=await fixture(),calls=[];
+  try{
+    await assert.rejects(()=>deployCloudflare({cwd:f.cwd,log:()=>{},run:async args=>{calls.push(args);return args[1]==='list'?'[]':'';}}),/noch nicht sichtbar/);
+    assert.equal(calls.length,3);assert.deepEqual(await f.read(),f.config);
+  }finally{await f.close();}
 });
 test('authorization or malformed list responses stop before migrations',async()=>{
   for(const response of ['invalid-json','{}',JSON.stringify([{name:'factory-league',uuid:'not-an-id'}])]){

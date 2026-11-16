@@ -39,7 +39,7 @@ npm run verify:artifact
 
 Für Oberflächentests: `npx playwright install chromium` und `npm run test:e2e`.
 
-Die Produktionsdatei `dist/server/index.js` enthält die Frontend-Dateien. `.openai/hosting.json` und eine Sites-Projektkennung werden weder benötigt noch mitgeliefert. Die Konfiguration liegt ausschließlich in `wrangler.json`. Beim Deploy wird die bestehende Datenbank anhand ihres Namens aufgelöst, bevor D1-Migrationen unter `drizzle/` und Worker-Deploy ausgeführt werden. Eine alte ID aus einem fehlgeschlagenen Vorlagenstart wird nicht wiederverwendet.
+Die Produktionsdatei `dist/server/index.js` enthält die Frontend-Dateien. `.openai/hosting.json` und eine Sites-Projektkennung werden weder benötigt noch mitgeliefert. Die Konfiguration liegt ausschließlich in `wrangler.json`. Beim Deploy wird die Datenbank anhand ihres Namens aufgelöst und nur bei Fehlen neu angelegt, bevor D1-Migrationen unter `drizzle/` und Worker-Deploy ausgeführt werden. Eine alte ID aus einem fehlgeschlagenen Vorlagenstart wird nicht wiederverwendet.
 
 ## Betreiberangaben
 
