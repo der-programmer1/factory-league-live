@@ -32,3 +32,7 @@ node scripts/backup-to-sql.mjs backup.json restored-factory.sql
 ```
 
 Die Wiederherstellungsdatei ist für eine neue, leere Datenbank gedacht und überschreibt keine laufende Datenbank. Auch `PASSWORD_PEPPER` muss für eine Wiederherstellung erhalten bleiben. Vor dem Umschalten Bestände prüfen und die vorherige Datenbank erhalten.
+
+## Datenbank-ID nach fehlgeschlagenem Vorlagenstart
+
+`npm run deploy` ermittelt zuerst über `wrangler d1 list --json` die aktuelle ID der vorhandenen Datenbank mit dem konfigurierten `database_name`. Nur bei genau einem Treffer wird die temporäre Build-Konfiguration aktualisiert. Danach laufen Migrationen und Worker-Deploy. Eine nicht auffindbare Datenbank führt zu einer klaren Fehlermeldung; es wird keine Ersatzdatenbank angelegt. Die Authentifizierung verwendet den bereits von Cloudflare bereitgestellten Build-Zugang.
