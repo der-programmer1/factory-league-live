@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "factory-league-live",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "no_bundle": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "factory-league",
+      "database_id": "25ad31f7-5f5e-4d5f-9e04-000b2f5b2688",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "secrets": {
+    "required": [
+      "PASSWORD_PEPPER"
+    ]
+  }
+}

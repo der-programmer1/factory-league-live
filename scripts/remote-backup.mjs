@@ -1,0 +1,14 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createCipheriv,publicEncrypt,randomBytes,constants} from 'node:crypto';
+const origin=process.env.FACTORY_LEAGUE_URL,token=process.env.FACTORY_LEAGUE_BACKUP_TOKEN;
+if(!origin||!token)throw new Error('Configure FACTORY_LEAGUE_URL and FACTORY_LEAGUE_BACKUP_TOKEN.');
+const url=new URL('/api/admin/backup',origin);if(url.protocol!=='https:')throw new Error('Backups require HTTPS.');
+const response=await fetch(url,{headers:{Authorization:`Bearer ${token}`},redirect:'error',signal:AbortSignal.timeout(120000)});
+if(!response.ok)throw new Error(`Backup failed: HTTP ${response.status}.`);
+const data=Buffer.from(await response.arrayBuffer()),backup=JSON.parse(data.toString());
+if(backup.format!=='factory-league-backup'||backup.version!==2)throw new Error('Unsupported backup response.');
+const key=randomBytes(32),iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv),encrypted=Buffer.concat([cipher.update(data),cipher.final()]);
+const publicKey=await readFile(new URL('../backup-public.pem',import.meta.url));
+const envelope={version:2,algorithm:'RSA-OAEP-SHA256+AES-256-GCM',createdAt:new Date().toISOString(),key:publicEncrypt({key:publicKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256'},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')};
+await mkdir('.runtime/encrypted-backups',{recursive:true});const filename=`.runtime/encrypted-backups/factory-league-${new Date().toISOString().replace(/[:.]/g,'-')}.flbackup`;
+await writeFile(filename,JSON.stringify(envelope),{flag:'wx',mode:0o600});console.log('Encrypted backup ready:',filename);

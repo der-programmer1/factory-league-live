@@ -1,0 +1,51 @@
+{
+  "name": "factory-league-live",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build && node scripts/build-worker.mjs",
+    "check": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "verify:artifact": "node scripts/verify-artifact.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5",
+    "lucide-react": "^0.577.0",
+    "drizzle-orm": "^0.45.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "@cloudflare/workers-types": "^4.20260515.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "tsx": "^4.20.6",
+    "esbuild": "^0.27.0",
+    "miniflare": "4.20260515.0",
+    "drizzle-kit": "^0.31.9",
+    "wrangler": "4.92.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "Dauerhafte Accounts, Fabriken und gemeinsame Rangliste. Wird automatisch angelegt."
+      },
+      "PASSWORD_PEPPER": {
+        "description": "Geheimer Schlüssel für die Passwortprüfung. Mindestens 32 zufällige Zeichen. Verwende für deinen Umzug den separat bereitgestellten Schlüssel und behalte ihn bei Updates bei. Nicht ins Repository eintragen."
+      }
+    }
+  }
+}
